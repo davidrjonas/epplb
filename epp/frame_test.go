@@ -1,4 +1,4 @@
-package main
+package epp
 
 import "testing"
 
@@ -11,7 +11,7 @@ var xml_response_success = `<?xml version="1.0" encoding="UTF-8" standalone="no"
 	`<trID><clTRID>ABC-12345</clTRID><svTRID>54321-XYZ</svTRID></trID></response></epp>`
 
 func TestGetCommand(t *testing.T) {
-	f := FromString(xml_command_info)
+	f := FrameFromString(xml_command_info)
 	cmd := f.GetCommand()
 
 	if cmd != "info" {
@@ -21,7 +21,7 @@ func TestGetCommand(t *testing.T) {
 }
 
 func TestGetClTRIDForCommand(t *testing.T) {
-	f := FromString(xml_command_info)
+	f := FrameFromString(xml_command_info)
 	clTRID := f.GetClTRID()
 
 	if clTRID != "ABC-12345" {
@@ -30,7 +30,7 @@ func TestGetClTRIDForCommand(t *testing.T) {
 }
 
 func TestGetClTRIDForResponse(t *testing.T) {
-	f := FromString(xml_response_success)
+	f := FrameFromString(xml_response_success)
 	clTRID := f.GetClTRID()
 
 	if clTRID != "ABC-12345" {

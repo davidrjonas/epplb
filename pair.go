@@ -4,6 +4,8 @@ import (
 	"log"
 	"net"
 
+	"github.com/davidrjonas/go-epp-proxy/epp"
+
 	pool "gopkg.in/fatih/pool.v2"
 )
 
@@ -20,7 +22,7 @@ func (pp *ProxyPair) talk(done func()) {
 	//pp.upstream.Login()
 
 	for {
-		frame, err := ReadFrame(pp.client)
+		frame, err := epp.ReadFrame(pp.client)
 
 		if err != nil {
 			log.Printf("Failed to read client; %v", err)
@@ -28,26 +30,26 @@ func (pp *ProxyPair) talk(done func()) {
 		}
 
 		if frame.IsCommand("login") || frame.IsCommand("logout") {
-			if err = WriteFrame(pp.client, frame.MakeSuccessResponse()); err != nil {
+			if err = epp.WriteFrame(pp.client, frame.MakeSuccessResponse()); err != nil {
 				log.Printf("Failed to write client; %v", err)
 				return
 			}
 			continue
 		}
 
-		if err = WriteFrame(pp.upstream, frame); err != nil {
+		if err = epp.WriteFrame(pp.upstream, frame); err != nil {
 			log.Printf("Failed to write upstream; %v", err)
 
 			pp.upstream.MarkUnusable()
 
-			if suberr := WriteFrame(pp.client, frame.MakeErrorResponse(err)); suberr != nil {
+			if suberr := epp.WriteFrame(pp.client, frame.MakeErrorResponse(err)); suberr != nil {
 				log.Printf("Failed to write client; %v", suberr)
 			}
 
 			return
 		}
 
-		response, err := ReadFrame(pp.upstream)
+		response, err := epp.ReadFrame(pp.upstream)
 
 		if err != nil {
 			log.Printf("Failed to read upstream; %v", err)
@@ -55,7 +57,7 @@ func (pp *ProxyPair) talk(done func()) {
 			response = frame.MakeErrorResponse(err)
 		}
 
-		if err := WriteFrame(pp.client, response); err != nil {
+		if err := epp.WriteFrame(pp.client, response); err != nil {
 			log.Printf("Failed to write client; %v", err)
 			return
 		}

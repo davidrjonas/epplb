@@ -1,4 +1,4 @@
-package main
+package epp
 
 import (
 	"encoding/binary"
@@ -17,7 +17,7 @@ type Frame struct {
 	doc  *xmlx.Document
 }
 
-func FromString(xml string) *Frame {
+func FrameFromString(xml string) *Frame {
 	b := []byte(xml)
 	return &Frame{Raw: b, Size: uint32(len(b))}
 }
