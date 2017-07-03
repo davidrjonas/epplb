@@ -1,0 +1,4 @@
+package: github.com/davidrjonas/go-epp-proxy
+import:
+- package: github.com/jteeuwen/go-pkg-xmlx
+- package: gopkg.in/fatih/pool.v2
