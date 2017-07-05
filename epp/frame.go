@@ -1,20 +1,25 @@
 package epp
 
 import (
-	"encoding/binary"
+	"errors"
+	"fmt"
 	"log"
-	"net"
 	"strings"
 
 	"github.com/jteeuwen/go-pkg-xmlx"
 )
 
-const NS_EPP10 = "urn:ietf:params:xml:ns:epp-1.0"
+const nsEpp10 = "urn:ietf:params:xml:ns:epp-1.0"
 
 type Frame struct {
 	Size uint32
 	Raw  []byte
 	doc  *xmlx.Document
+}
+
+type Result struct {
+	Code uint16
+	Msg  string
 }
 
 func FrameFromString(xml string) *Frame {
@@ -28,7 +33,7 @@ func (f *Frame) IsCommand(cmd string) bool {
 
 func (f *Frame) GetCommand() string {
 	doc := f.getDoc()
-	node := doc.SelectNode(NS_EPP10, "command")
+	node := doc.SelectNode(nsEpp10, "command")
 
 	if node == nil || len(node.Children) == 0 {
 		return ""
@@ -39,15 +44,15 @@ func (f *Frame) GetCommand() string {
 
 func (f *Frame) GetClTRID() string {
 	doc := f.getDoc()
-	node := doc.SelectNode(NS_EPP10, "command")
+	node := doc.SelectNode(nsEpp10, "command")
 	if node != nil {
-		return node.S(NS_EPP10, "clTRID")
+		return node.S(nsEpp10, "clTRID")
 	}
 
-	node = doc.SelectNode(NS_EPP10, "trID")
+	node = doc.SelectNode(nsEpp10, "trID")
 
 	if node != nil {
-		return node.S(NS_EPP10, "clTRID")
+		return node.S(nsEpp10, "clTRID")
 	}
 
 	return ""
@@ -93,37 +98,58 @@ func (f *Frame) MakeErrorResponse(err error) *Frame {
 	return &Frame{Raw: b, Size: uint32(len(b))}
 }
 
-func ReadFrame(c net.Conn) (*Frame, error) {
-	header := make([]byte, 4)
+func (f *Frame) GetResult() (*Result, error) {
+	doc := f.getDoc()
+	node := doc.SelectNode(nsEpp10, "response")
 
-	// TODO: handle partial read
-	if _, err := c.Read(header); err != nil {
-		return nil, err
+	if node == nil || len(node.Children) == 0 {
+		return nil, fmt.Errorf("frame is not a response")
 	}
 
-	size := binary.BigEndian.Uint32(header) - 4
+	result := node.SelectNode(nsEpp10, "result")
 
-	body := make([]byte, size)
-
-	// TODO: handle partial read
-	if _, err := c.Read(body); err != nil {
-		return nil, err
+	if node == nil {
+		return nil, fmt.Errorf("frame is missing result")
 	}
 
-	return &Frame{Size: size - 4, Raw: body}, nil
+	code := result.Au16(nsEpp10, "code")
+	msg := result.S(nsEpp10, "msg")
+
+	return &Result{Code: code, Msg: msg}, nil
 }
 
-func WriteFrame(c net.Conn, frame *Frame) error {
-	header := make([]byte, 4)
-	binary.BigEndian.PutUint32(header, frame.Size+4)
-
-	// TODO: handle partial write
-	if _, err := c.Write(header); err != nil {
-		return err
+func (f *Frame) IsSuccess() bool {
+	result, err := f.GetResult()
+	if err != nil {
+		return false
 	}
 
-	if _, err := c.Write(frame.Raw); err != nil {
-		return err
+	return result.Code >= 1000 && result.Code < 2000
+}
+
+func (f *Frame) IsFailure() bool {
+	result, err := f.GetResult()
+	if err != nil {
+		return false
 	}
-	return nil
+
+	return result.Code >= 2000
+}
+
+// MakeLoginFrame is not implemented
+func MakeLoginFrame(clID, password, newPassword, clTRID string, svcs, exts []string) *Frame {
+	panic(errors.New("not implemented"))
+	return &Frame{}
+}
+
+func MakeHelloFrame() *Frame {
+	xml := `<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n` +
+		`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><hello/></epp>`
+	return FrameFromString(xml)
+}
+
+func MakeLogoutFrame() *Frame {
+	xml := `<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n` +
+		`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><logout/><clTRID>00000-AAA</clTRID></command></epp>`
+	return FrameFromString(xml)
 }

@@ -1,0 +1,7 @@
+go-epp-proxy
+.DS_Store
+/bin
+/vendor
+/dist
+.*.swp
+

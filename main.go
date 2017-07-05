@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
+
+	pool "gopkg.in/fatih/pool.v2"
 )
 
 var (
@@ -17,26 +18,45 @@ var (
 	caFile   = flag.String("ca", "ca.pem", "A PEM eoncoded CA's certificate file.")
 )
 
+func mustCreatePool(capacity int, upstreamHost, certFile, keyFile, caFile string) pool.Pool {
+	upstreams, err := pool.NewChannelPool(1, capacity, MakeTlsClientFactory(upstreamHost, certFile, keyFile, caFile))
+
+	if err != nil {
+		log.Fatalf("Failed to create pool; %v", err)
+	}
+
+	return upstreams
+}
+
+func mustListen(laddr string) net.Listener {
+	server, err := net.Listen("tcp", laddr)
+
+	if err != nil {
+		log.Fatalf("Failed to listen; address=%s, err=%v", laddr, err)
+	}
+
+	return server
+}
+
+func NewEppServer(laddr, upstreamHost, certFile, keyFile, caFile string, capacity int) *Server {
+	h := ProxyHandler{pool: mustCreatePool(capacity, upstreamHost, certFile, keyFile, caFile)}
+	s := NewServer(mustListen(laddr))
+
+	go s.Serve(h.Handle)
+
+	return s
+}
+
 func main() {
 	flag.Parse()
 
-	server, err := net.Listen("tcp", *listen)
-
-	if err != nil {
-		log.Fatalf("Failed to listen; address=%s, err=%v", *listen, err)
-	}
-
-	p, _ := NewProxy(server, makeTlsClientFactory(*upstream, *certFile, *keyFile, *caFile))
-
-	stop := make(chan bool, 1)
-	go p.Listen(stop)
+	s := NewEppServer(*listen, *upstream, *certFile, *keyFile, *caFile, 8)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
 
-	// Block until a signal is received.
 	<-sigs
 
-	fmt.Println("Closing listener and waiting for clients to finish")
-	stop <- true
+	log.Println("Closing listener and waiting for clients to finish")
+	s.Stop()
 }
