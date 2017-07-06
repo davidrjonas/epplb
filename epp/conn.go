@@ -104,13 +104,13 @@ func (c *Client) LoginWithFrame(frame *Frame) (*Frame, error) {
 	return response, nil
 }
 
-func (c *Client) Login(clID, password, newPassword, clTRID string, svcs, exts []string) (*Frame, error) {
-	if c.loginResponse != nil {
-		return c.loginResponse, nil
-	}
-
-	return c.LoginWithFrame(MakeLoginFrame(clID, password, newPassword, clTRID, svcs, exts))
-}
+//func (c *Client) Login(clID, password, newPassword, clTRID string, svcs, exts []string) (*Frame, error) {
+//	if c.loginResponse != nil {
+//		return c.loginResponse, nil
+//	}
+//
+//	return c.LoginWithFrame(MakeLoginFrame(clID, password, newPassword, clTRID, svcs, exts))
+//}
 
 func (c *Client) Logout() error {
 	if err := c.WriteFrame(MakeLogoutFrame()); err != nil {

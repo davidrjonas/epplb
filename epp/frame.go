@@ -1,7 +1,6 @@
 package epp
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -108,11 +107,11 @@ func (f *Frame) GetResult() (*Result, error) {
 
 	result := node.SelectNode(nsEpp10, "result")
 
-	if node == nil {
+	if result == nil {
 		return nil, fmt.Errorf("frame is missing result")
 	}
 
-	code := result.Au16(nsEpp10, "code")
+	code := result.Au16("", "code")
 	msg := result.S(nsEpp10, "msg")
 
 	return &Result{Code: code, Msg: msg}, nil
@@ -137,19 +136,19 @@ func (f *Frame) IsFailure() bool {
 }
 
 // MakeLoginFrame is not implemented
-func MakeLoginFrame(clID, password, newPassword, clTRID string, svcs, exts []string) *Frame {
-	panic(errors.New("not implemented"))
-	return &Frame{}
-}
+//func MakeLoginFrame(clID, password, newPassword, clTRID string, svcs, exts []string) *Frame {
+//	panic(errors.New("not implemented"))
+//	return &Frame{}
+//}
 
 func MakeHelloFrame() *Frame {
-	xml := `<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n` +
-		`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><hello/></epp>`
-	return FrameFromString(xml)
+	xml := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n` +
+		`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><hello/></epp>`)
+	return &Frame{Raw: xml, Size: uint32(len(xml))}
 }
 
 func MakeLogoutFrame() *Frame {
-	xml := `<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n` +
-		`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><logout/><clTRID>00000-AAA</clTRID></command></epp>`
-	return FrameFromString(xml)
+	xml := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n` +
+		`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><command><logout/><clTRID>00000-AAA</clTRID></command></epp>`)
+	return &Frame{Raw: xml, Size: uint32(len(xml))}
 }
