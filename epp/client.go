@@ -3,18 +3,43 @@ package epp
 import (
 	"fmt"
 	"io"
+	"log"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Client struct {
-	conn          *Conn
-	busy          sync.Mutex
-	greeting      *Frame
-	loginResponse *Frame
+	conn              *Conn
+	busy              sync.Mutex
+	lastOp            int64
+	keepaliveInterval time.Duration
+	keepaliveTicker   *time.Ticker
+	greeting          *Frame
+	loginResponse     *Frame
 }
 
-func NewClient(c io.ReadWriter) *Client {
-	return &Client{conn: NewConn(c)}
+type ClientOption func(*Client)
+
+func KeepaliveInterval(d time.Duration) ClientOption {
+	return func(c *Client) {
+		c.keepaliveInterval = d
+	}
+}
+
+func NewClient(c io.ReadWriter, options ...ClientOption) *Client {
+	client := Client{
+		conn:              NewConn(c),
+		keepaliveInterval: 5 * time.Minute,
+	}
+
+	for _, opt := range options {
+		opt(&client)
+	}
+
+	client.keepaliveStart()
+
+	return &client
 }
 
 func (c *Client) readFrame() (*Frame, error) {
@@ -22,7 +47,35 @@ func (c *Client) readFrame() (*Frame, error) {
 }
 
 func (c *Client) writeFrame(f *Frame) error {
+	atomic.StoreInt64(&c.lastOp, time.Now().UnixNano())
 	return c.conn.WriteFrame(f)
+}
+
+func (c *Client) keepaliveStart() {
+	if c.keepaliveInterval <= 0 {
+		return
+	}
+
+	ticker := time.NewTicker(c.keepaliveInterval)
+	go func() {
+		for t := range ticker.C {
+			lastOp := time.Unix(0, atomic.LoadInt64(&c.lastOp))
+			if t.After(lastOp.Add(c.keepaliveInterval)) {
+				log.Println("sending keepalive; lastOp=" + lastOp.Format(time.RFC3339))
+				c.Hello()
+			}
+		}
+	}()
+
+	c.keepaliveTicker = ticker
+}
+
+func (c *Client) keepaliveStop() {
+	if c.keepaliveTicker == nil {
+		return
+	}
+
+	c.keepaliveTicker.Stop()
 }
 
 func (c *Client) Connect() (*Frame, error) {
@@ -97,11 +150,11 @@ func (c *Client) Hello() (*Frame, error) {
 //}
 
 func (c *Client) Logout() error {
-	if err := c.writeFrame(MakeLogoutFrame()); err != nil {
+	c.keepaliveStop()
+
+	if _, err := c.GetResponse(MakeLogoutFrame()); err != nil {
 		return err
 	}
-
-	// TODO: do we need to read a response?
 
 	return nil
 }
