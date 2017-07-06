@@ -5,7 +5,7 @@ import (
 
 	pool "gopkg.in/fatih/pool.v2"
 
-	"github.com/davidrjonas/go-epp-proxy/epp"
+	"github.com/davidrjonas/epplb/epp"
 )
 
 type ProxyHandler struct {

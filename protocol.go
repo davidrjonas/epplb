@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 
-	"github.com/davidrjonas/go-epp-proxy/epp"
+	"github.com/davidrjonas/epplb/epp"
 )
 
 type UpstreamError error
