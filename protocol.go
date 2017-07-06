@@ -74,12 +74,8 @@ func (p *Protocol) LoggedIn() (stateFn, error) {
 		return nil, nil
 	}
 
-	if err := p.Upstream.WriteFrame(cmd); err != nil {
-		// TODO: Inform the Downstream? Return a retry?
-		return nil, err.(UpstreamError)
-	}
+	response, err := p.Upstream.GetResponse(cmd)
 
-	response, err := p.Upstream.ReadFrame()
 	if err != nil {
 		// TODO: Inform the Downstream? Return a retry?
 		return nil, err.(UpstreamError)
