@@ -41,7 +41,7 @@ func mustListen(laddr string) net.Listener {
 }
 
 func NewEppServer(laddr, upstreamHost, certFile, keyFile, caFile string, capacity int) *rfc5734.Server {
-	h := ProxyHandler{pool: mustCreatePool(capacity, upstreamHost, certFile, keyFile, caFile)}
+	h := ProxyHandler{pool: mustCreatePool(capacity, upstreamHost, certFile, keyFile, caFile), MaxRetries: 3}
 	s := rfc5734.NewServer(mustListen(laddr))
 
 	go s.Serve(h.Handle)

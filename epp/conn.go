@@ -3,6 +3,7 @@ package epp
 import (
 	"encoding/binary"
 	"io"
+	"net"
 )
 
 type Conn struct {
@@ -11,6 +12,11 @@ type Conn struct {
 
 func NewConn(c io.ReadWriter) *Conn {
 	return &Conn{ReadWriter: c}
+}
+
+func (c *Conn) RemoteAddr() net.Addr {
+	panic("not implemented")
+	return nil
 }
 
 func (c *Conn) ReadFrame() (*Frame, error) {

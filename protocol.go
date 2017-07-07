@@ -7,6 +7,12 @@ import (
 )
 
 type UpstreamError error
+type UpstreamCanRetryError UpstreamError
+
+type UpstreamErrorCanResend struct {
+	UpstreamError
+	failedFrame *epp.Frame
+}
 
 type stateFn func() (stateFn, error)
 
@@ -31,11 +37,15 @@ func (p *Protocol) Talk() (err error) {
 	return nil
 }
 
+func (p *Protocol) Resume(f *epp.Frame) error {
+	panic("not implemented")
+	return nil
+}
+
 func (p *Protocol) Connected() (stateFn, error) {
 	greeting, err := p.Upstream.Connect()
 	if err != nil {
-		// TODO: Inform the Downstream? Return a retry?
-		return nil, err.(UpstreamError)
+		return nil, err.(UpstreamCanRetryError)
 	}
 
 	if err := p.Downstream.WriteFrame(greeting); err != nil {
@@ -55,8 +65,10 @@ func (p *Protocol) Greeted() (stateFn, error) {
 
 	response, err := p.Upstream.LoginWithFrame(cmd)
 	if err != nil {
-		// TODO: Inform the Downstream? Return a retry?
-		return nil, err.(UpstreamError)
+		return nil, UpstreamErrorCanResend{
+			UpstreamError: err,
+			failedFrame:   cmd,
+		}
 	}
 
 	if err := p.Downstream.WriteFrame(response); err != nil {
@@ -77,9 +89,10 @@ func (p *Protocol) LoggedIn() (stateFn, error) {
 	response, err := p.Upstream.GetResponse(cmd)
 
 	if err != nil {
-		// TODO: Inform the Downstream? Return a retry?
-		return nil, err.(UpstreamError)
-
+		return nil, UpstreamErrorCanResend{
+			UpstreamError: err,
+			failedFrame:   cmd,
+		}
 	}
 
 	if err = p.Downstream.WriteFrame(response); err != nil {
