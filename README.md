@@ -15,14 +15,14 @@ This project is not yet complete.
 TODO
 ----
 
-- [  ] Retries
-- [  ] Add config file
-- [  ] Multi proxies
-- [  ] Stop keepalive ticker without logout, on connection problem
-- [  ] Add expvar stats
-- [  ] [Error wrapping](https://github.com/pkg/errors)
-- [  ] Research possible partial read/writes in ReadFrame, WriteFrame
-- [  ] Client auth comparison, client auth scheme
+- [ ] Retries
+- [ ] Add config file
+- [ ] Multi proxies
+- [ ] Stop keepalive ticker without logout, on connection problem
+- [ ] Add expvar stats
+- [ ] [Error wrapping](https://github.com/pkg/errors)
+- [ ] Research possible partial read/writes in ReadFrame, WriteFrame
+- [ ] Client auth comparison, client auth scheme
 
 Future Improvements
 -------------------
