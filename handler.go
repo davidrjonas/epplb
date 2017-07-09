@@ -34,7 +34,7 @@ func (h *ProxyHandler) Handle(c net.Conn) error {
 		if _, ok := err.(UpstreamError); ok {
 			upstream.(*pool.PoolConn).MarkUnusable()
 			log.Printf("upstream error; downstream=%v, upstream=%v, err=%v", c.RemoteAddr(), upstream.RemoteAddr(), err)
-			if nErr, ok := err.(UpstreamErrorCanResend); ok && h.MaxRetries > 0 {
+			if nErr, ok := err.(RetryableUpstreamError); ok && h.MaxRetries > 0 {
 				return h.retryFrame(0, p, nErr.failedFrame)
 			}
 		} else if err == io.EOF {
@@ -69,7 +69,7 @@ func (h *ProxyHandler) retryFrame(retryCount uint8, p *Protocol, frame *epp.Fram
 		if _, ok := err.(UpstreamError); ok {
 			upstream.(*pool.PoolConn).MarkUnusable()
 			log.Printf("upstream error; downstream=%v, upstream=%v, err=%v", p.Downstream.RemoteAddr(), upstream.RemoteAddr(), err)
-			if nErr, ok := err.(UpstreamErrorCanResend); ok {
+			if nErr, ok := err.(RetryableUpstreamError); ok {
 				return h.retryFrame(retryCount+1, p, nErr.failedFrame)
 			}
 		} else if err == io.EOF {

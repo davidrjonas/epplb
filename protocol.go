@@ -7,9 +7,8 @@ import (
 )
 
 type UpstreamError error
-type UpstreamCanRetryError UpstreamError
 
-type UpstreamErrorCanResend struct {
+type RetryableUpstreamError struct {
 	UpstreamError
 	failedFrame *epp.Frame
 }
@@ -66,7 +65,7 @@ func (p *Protocol) run(state stateFn) (err error) {
 func (p *Protocol) connected() (stateFn, error) {
 	greeting, err := p.Upstream.Connect()
 	if err != nil {
-		return nil, err.(UpstreamCanRetryError)
+		return nil, RetryableUpstreamError{UpstreamError: err}
 	}
 
 	if err := p.Downstream.WriteFrame(greeting); err != nil {
@@ -95,7 +94,7 @@ func (p *Protocol) greetedThenFrame(cmd *epp.Frame) (stateFn, error) {
 
 	response, err := p.Upstream.LoginWithFrame(cmd)
 	if err != nil {
-		return nil, UpstreamErrorCanResend{
+		return nil, RetryableUpstreamError{
 			UpstreamError: err,
 			failedFrame:   cmd,
 		}
@@ -128,7 +127,7 @@ func (p *Protocol) loggedInThenFrame(cmd *epp.Frame) (stateFn, error) {
 	response, err := p.Upstream.GetResponse(cmd)
 
 	if err != nil {
-		return nil, UpstreamErrorCanResend{
+		return nil, RetryableUpstreamError{
 			UpstreamError: err,
 			failedFrame:   cmd,
 		}
