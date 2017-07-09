@@ -22,8 +22,34 @@ type Protocol struct {
 }
 
 func (p *Protocol) Talk() (err error) {
-	state := p.Connected
+	return p.run(p.connected)
+}
 
+func (p *Protocol) Resume(f *epp.Frame) error {
+	if f == nil {
+		return p.run(p.connected)
+	}
+
+	switch f.GetCommand() {
+	case "login":
+		stateFn, err := p.greetedThenFrame(f)
+		if err != nil {
+			return err
+		}
+		return p.run(stateFn)
+	case "logout":
+		p.Downstream.WriteFrame(f.MakeSuccessResponse())
+		return nil
+	default:
+		stateFn, err := p.loggedInThenFrame(f)
+		if err != nil {
+			return err
+		}
+		return p.run(stateFn)
+	}
+}
+
+func (p *Protocol) run(state stateFn) (err error) {
 	for {
 		if state, err = state(); err != nil {
 			return err
@@ -37,12 +63,7 @@ func (p *Protocol) Talk() (err error) {
 	return nil
 }
 
-func (p *Protocol) Resume(f *epp.Frame) error {
-	panic("not implemented")
-	return nil
-}
-
-func (p *Protocol) Connected() (stateFn, error) {
+func (p *Protocol) connected() (stateFn, error) {
 	greeting, err := p.Upstream.Connect()
 	if err != nil {
 		return nil, err.(UpstreamCanRetryError)
@@ -52,16 +73,25 @@ func (p *Protocol) Connected() (stateFn, error) {
 		return nil, err
 	}
 
-	return p.Greeted, nil
+	return p.greeted, nil
 }
 
-func (p *Protocol) Greeted() (stateFn, error) {
+func (p *Protocol) greeted() (stateFn, error) {
 	cmd, err := p.Downstream.ReadFrame()
+
+	if err != nil {
+		return nil, err
+	}
 
 	if !cmd.IsCommand("login") {
 		p.Downstream.WriteFrame(cmd.MakeErrorResponse(errors.New("unauthorized")))
-		return p.Greeted, nil
+		return p.greeted, nil
 	}
+
+	return p.greetedThenFrame(cmd)
+}
+
+func (p *Protocol) greetedThenFrame(cmd *epp.Frame) (stateFn, error) {
 
 	response, err := p.Upstream.LoginWithFrame(cmd)
 	if err != nil {
@@ -75,16 +105,25 @@ func (p *Protocol) Greeted() (stateFn, error) {
 		return nil, err
 	}
 
-	return p.LoggedIn, nil
+	return p.loggedIn, nil
 }
 
-func (p *Protocol) LoggedIn() (stateFn, error) {
+func (p *Protocol) loggedIn() (stateFn, error) {
 	cmd, err := p.Downstream.ReadFrame()
+
+	if err != nil {
+		return nil, err
+	}
 
 	if cmd.IsCommand("logout") {
 		p.Downstream.WriteFrame(cmd.MakeSuccessResponse())
 		return nil, nil
 	}
+
+	return p.loggedInThenFrame(cmd)
+}
+
+func (p *Protocol) loggedInThenFrame(cmd *epp.Frame) (stateFn, error) {
 
 	response, err := p.Upstream.GetResponse(cmd)
 
@@ -99,5 +138,5 @@ func (p *Protocol) LoggedIn() (stateFn, error) {
 		return nil, err
 	}
 
-	return p.LoggedIn, nil
+	return p.loggedIn, nil
 }
