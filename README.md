@@ -15,7 +15,6 @@ This project is not yet complete.
 TODO
 ----
 
-- [ ] Retries
 - [ ] Add config file
 - [ ] Multi proxies
 - [ ] Stop keepalive ticker without logout, on connection problem
