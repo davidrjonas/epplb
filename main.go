@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/davidrjonas/epplb/rfc5734"
+
 	pool "gopkg.in/fatih/pool.v2"
 )
 
@@ -38,9 +40,9 @@ func mustListen(laddr string) net.Listener {
 	return server
 }
 
-func NewEppServer(laddr, upstreamHost, certFile, keyFile, caFile string, capacity int) *Server {
+func NewEppServer(laddr, upstreamHost, certFile, keyFile, caFile string, capacity int) *rfc5734.Server {
 	h := ProxyHandler{pool: mustCreatePool(capacity, upstreamHost, certFile, keyFile, caFile)}
-	s := NewServer(mustListen(laddr))
+	s := rfc5734.NewServer(mustListen(laddr))
 
 	go s.Serve(h.Handle)
 
