@@ -2,8 +2,8 @@ package epp
 
 import (
 	"fmt"
-	"io"
 	"log"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,7 +27,7 @@ func KeepaliveInterval(d time.Duration) ClientOption {
 	}
 }
 
-func NewClient(c io.ReadWriter, options ...ClientOption) *Client {
+func NewClient(c net.Conn, options ...ClientOption) *Client {
 	client := Client{
 		conn:              NewConn(c),
 		keepaliveInterval: 5 * time.Minute,
@@ -40,6 +40,10 @@ func NewClient(c io.ReadWriter, options ...ClientOption) *Client {
 	client.keepaliveStart()
 
 	return &client
+}
+
+func (c *Client) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
 }
 
 func (c *Client) readFrame() (*Frame, error) {
@@ -61,7 +65,7 @@ func (c *Client) keepaliveStart() {
 		for t := range ticker.C {
 			lastOp := time.Unix(0, atomic.LoadInt64(&c.lastOp))
 			if t.After(lastOp.Add(c.keepaliveInterval)) {
-				log.Println("sending keepalive; lastOp=" + lastOp.Format(time.RFC3339))
+				log.Printf("sending keepalive; addr=%v, lastOp=%s", c.conn.RemoteAddr(), lastOp.Format(time.RFC3339))
 				c.Hello()
 			}
 		}

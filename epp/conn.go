@@ -2,21 +2,15 @@ package epp
 
 import (
 	"encoding/binary"
-	"io"
 	"net"
 )
 
 type Conn struct {
-	io.ReadWriter
+	net.Conn
 }
 
-func NewConn(c io.ReadWriter) *Conn {
-	return &Conn{ReadWriter: c}
-}
-
-func (c *Conn) RemoteAddr() net.Addr {
-	panic("not implemented")
-	return nil
+func NewConn(c net.Conn) *Conn {
+	return &Conn{Conn: c}
 }
 
 func (c *Conn) ReadFrame() (*Frame, error) {

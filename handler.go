@@ -16,6 +16,10 @@ type ProxyHandler struct {
 	MaxRetries uint8
 }
 
+func (h *ProxyHandler) logf(format string, v ...interface{}) {
+	log.Printf(format, v...)
+}
+
 func (h *ProxyHandler) Handle(c net.Conn) error {
 	upstream, err := h.pool.Get()
 
@@ -33,12 +37,12 @@ func (h *ProxyHandler) Handle(c net.Conn) error {
 	if err != nil {
 		if _, ok := err.(UpstreamError); ok {
 			upstream.(*pool.PoolConn).MarkUnusable()
-			log.Printf("upstream error; downstream=%v, upstream=%v, err=%v", c.RemoteAddr(), upstream.RemoteAddr(), err)
+			h.logf("upstream error; downstream=%v, upstream=%v, err=%v", p.Downstream.RemoteAddr(), p.Upstream.RemoteAddr(), err)
 			if nErr, ok := err.(RetryableUpstreamError); ok && h.MaxRetries > 0 {
 				return h.retryFrame(0, p, nErr.failedFrame)
 			}
 		} else if err == io.EOF {
-			log.Printf("client disconnected; %v", c.RemoteAddr())
+			h.logf("client disconnected; downstream=%v", p.Downstream.RemoteAddr())
 			return nil
 		}
 	}
@@ -48,16 +52,16 @@ func (h *ProxyHandler) Handle(c net.Conn) error {
 
 func (h *ProxyHandler) retryFrame(retryCount uint8, p *Protocol, frame *epp.Frame) error {
 	if retryCount >= h.MaxRetries {
-		log.Printf("max retries reached; count=%d, downstream=%v, cmd=%v", retryCount, p.Downstream.RemoteAddr(), frame.GetCommand())
+		h.logf("max retries reached; count=%d, downstream=%v, cmd=%v", retryCount, p.Downstream.RemoteAddr(), frame.GetCommand())
 		return errors.New("max retries reached")
 	}
 
-	log.Printf("retrying failed frame; downstream=%v, cmd=%v", p.Downstream.RemoteAddr(), frame.GetCommand())
+	h.logf("retrying failed frame; downstream=%v, cmd=%v", p.Downstream.RemoteAddr(), frame.GetCommand())
 
 	upstream, err := h.pool.Get()
 
 	if err != nil {
-		log.Printf("retry failed to get new upstream; downstream=%v, err=%v", p.Downstream.RemoteAddr(), err)
+		h.logf("retry failed to get new upstream; downstream=%v, err=%v", p.Downstream.RemoteAddr(), err)
 		return err
 	}
 
@@ -68,12 +72,12 @@ func (h *ProxyHandler) retryFrame(retryCount uint8, p *Protocol, frame *epp.Fram
 	if err != nil {
 		if _, ok := err.(UpstreamError); ok {
 			upstream.(*pool.PoolConn).MarkUnusable()
-			log.Printf("upstream error; downstream=%v, upstream=%v, err=%v", p.Downstream.RemoteAddr(), upstream.RemoteAddr(), err)
+			h.logf("upstream error; downstream=%v, upstream=%v, err=%v", p.Downstream.RemoteAddr(), p.Upstream.RemoteAddr(), err)
 			if nErr, ok := err.(RetryableUpstreamError); ok {
 				return h.retryFrame(retryCount+1, p, nErr.failedFrame)
 			}
 		} else if err == io.EOF {
-			log.Printf("client disconnected; %v", p.Downstream.RemoteAddr())
+			h.logf("client disconnected; %v", p.Downstream.RemoteAddr())
 			return nil
 		}
 	}
