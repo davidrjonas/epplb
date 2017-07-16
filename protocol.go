@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 
 	"github.com/davidrjonas/epplb/epp"
 )
@@ -82,15 +83,16 @@ func (p *Protocol) greeted() (stateFn, error) {
 		return nil, err
 	}
 
-	if !cmd.IsCommand("login") {
-		p.Downstream.WriteFrame(cmd.MakeErrorResponse(errors.New("unauthorized")))
-		return p.greeted, nil
-	}
-
 	return p.greetedThenFrame(cmd)
 }
 
 func (p *Protocol) greetedThenFrame(cmd *epp.Frame) (stateFn, error) {
+
+	if !cmd.IsCommand("login") {
+		log.Println("expected login command, got", cmd.GetCommand())
+		p.Downstream.WriteFrame(cmd.MakeErrorResponse(errors.New("unauthorized")))
+		return p.greeted, nil
+	}
 
 	response, err := p.Upstream.LoginWithFrame(cmd)
 	if err != nil {
@@ -114,15 +116,15 @@ func (p *Protocol) loggedIn() (stateFn, error) {
 		return nil, err
 	}
 
-	if cmd.IsCommand("logout") {
-		p.Downstream.WriteFrame(cmd.MakeSuccessResponse())
-		return nil, nil
-	}
-
 	return p.loggedInThenFrame(cmd)
 }
 
 func (p *Protocol) loggedInThenFrame(cmd *epp.Frame) (stateFn, error) {
+
+	if cmd.IsCommand("logout") {
+		p.Downstream.WriteFrame(cmd.MakeSuccessResponse())
+		return nil, nil
+	}
 
 	response, err := p.Upstream.GetResponse(cmd)
 
