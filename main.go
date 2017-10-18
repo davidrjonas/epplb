@@ -18,6 +18,7 @@ var (
 	certFile = flag.String("cert", "crt.pem", "A PEM eoncoded certificate file.")
 	keyFile  = flag.String("key", "key.pem", "A PEM encoded private key file.")
 	caFile   = flag.String("ca", "ca.pem", "A PEM eoncoded CA's certificate file.")
+	maxConns = flag.Int("max-conns", 1, "Maximum number of upstream connections to open")
 )
 
 func mustCreatePool(capacity int, upstreamHost, certFile, keyFile, caFile string) pool.Pool {
@@ -40,8 +41,8 @@ func mustListen(laddr string) net.Listener {
 	return server
 }
 
-func NewEppServer(laddr, upstreamHost, certFile, keyFile, caFile string, capacity int) *rfc5734.Server {
-	h := ProxyHandler{pool: mustCreatePool(capacity, upstreamHost, certFile, keyFile, caFile), MaxRetries: 3}
+func NewEppServer(laddr string, maxConns int, upstreamHost, certFile, keyFile, caFile string) *rfc5734.Server {
+	h := ProxyHandler{pool: mustCreatePool(maxConns, upstreamHost, certFile, keyFile, caFile), MaxRetries: 3}
 	s := rfc5734.NewServer(mustListen(laddr))
 
 	go s.Serve(h.Handle)
@@ -52,7 +53,7 @@ func NewEppServer(laddr, upstreamHost, certFile, keyFile, caFile string, capacit
 func main() {
 	flag.Parse()
 
-	s := NewEppServer(*listen, *upstream, *certFile, *keyFile, *caFile, 8)
+	s := NewEppServer(*listen, *maxConns, *upstream, *certFile, *keyFile, *caFile)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
