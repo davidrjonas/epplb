@@ -34,11 +34,17 @@ func (f *Frame) GetCommand() string {
 	doc := f.getDoc()
 	node := doc.SelectNode(nsEpp10, "command")
 
-	if node == nil || len(node.Children) == 0 {
+	if node == nil {
 		return ""
 	}
 
-	return node.Children[0].Name.Local
+	for _, child := range node.Children {
+		if child.Type == xmlx.NT_ELEMENT {
+			return child.Name.Local
+		}
+	}
+
+	return ""
 }
 
 func (f *Frame) GetClTRID() string {

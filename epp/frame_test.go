@@ -15,6 +15,33 @@ var xml_response_success = `<?xml version="1.0" encoding="UTF-8" standalone="no"
 	`<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result code="1000"><msg lang="en">Command completed successfully</msg></result>` +
 	`<trID><clTRID>ABC-12345</clTRID><svTRID>54321-XYZ</svTRID></trID></response></epp>`
 
+var xml_command_login = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0
+     epp-1.0.xsd">
+  <command>
+    <login>
+      <clID>client1</clID>
+      <pw>XxXxXxXx</pw>
+      <options>
+        <version>1.0</version>
+        <lang>en</lang>
+      </options>
+      <svcs>
+        <objURI>urn:ietf:params:xml:ns:domain-1.0</objURI>
+        <objURI>urn:ietf:params:xml:ns:host-1.0</objURI>
+        <svcExtension>
+          <extURI>http://www.verisign-grs.com/epp/namestoreExt-1.1</extURI>
+          <extURI>http://www.verisign.com/epp/sync-1.0</extURI>
+          <extURI>urn:ietf:params:xml:ns:rgp-1.0</extURI>
+          <extURI>urn:ietf:params:xml:ns:secDNS-1.1</extURI>
+        </svcExtension>
+      </svcs>
+    </login>
+    <clTRID>NOIP-X59630bec</clTRID>  </command>
+</epp>`
+
 func TestFrameFromString(t *testing.T) {
 	f := FrameFromString(xml_command_info)
 	if string(f.Raw) != xml_command_info {
@@ -57,7 +84,15 @@ func TestGetCommand(t *testing.T) {
 	if cmd != "info" {
 		t.Error("Expected 'info', got", cmd)
 	}
+}
 
+func TestGetCommandWithWhitespace(t *testing.T) {
+	f = FrameFromString(xml_command_login)
+	cmd = f.GetCommand()
+
+	if cmd != "login" {
+		t.Errorf("Expected 'login', got '%v'", cmd)
+	}
 }
 
 func TestGetClTRIDForCommand(t *testing.T) {
