@@ -87,8 +87,8 @@ func TestGetCommand(t *testing.T) {
 }
 
 func TestGetCommandWithWhitespace(t *testing.T) {
-	f = FrameFromString(xml_command_login)
-	cmd = f.GetCommand()
+	f := FrameFromString(xml_command_login)
+	cmd := f.GetCommand()
 
 	if cmd != "login" {
 		t.Errorf("Expected 'login', got '%v'", cmd)
