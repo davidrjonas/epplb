@@ -21,7 +21,7 @@ var (
 )
 
 func mustCreatePool(capacity int, upstreamHost, certFile, keyFile, caFile string) pool.Pool {
-	upstreams, err := pool.NewChannelPool(1, capacity, MakeTlsClientFactory(upstreamHost, certFile, keyFile, caFile))
+	upstreams, err := pool.NewChannelPool(1, capacity, NewTlsClientFactory(upstreamHost, certFile, keyFile, caFile))
 
 	if err != nil {
 		log.Fatalf("Failed to create pool; %v", err)

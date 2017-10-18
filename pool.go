@@ -8,7 +8,7 @@ import (
 	"net"
 )
 
-func MakeTlsClientFactory(address, certFile, keyFile, caFile string) func() (net.Conn, error) {
+func NewTlsClientFactory(address, certFile, keyFile, caFile string) func() (net.Conn, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 
 	if err != nil {
