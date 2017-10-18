@@ -1,0 +1,21 @@
+{
+    "memo": "956c154a24dc270ab15d21746235caa78772576da51aa880d91145eb7d526083",
+    "projects": [
+        {
+            "name": "github.com/jteeuwen/go-pkg-xmlx",
+            "branch": "master",
+            "revision": "76f54ee73233b171ca9ee82ef837a1fc4d3809c0",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "gopkg.in/fatih/pool.v2",
+            "branch": "v2.0.0",
+            "revision": "6e328e67893eb46323ad06f0e92cb9536babbabc",
+            "packages": [
+                "."
+            ]
+        }
+    ]
+}
